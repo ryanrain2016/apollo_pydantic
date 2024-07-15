@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "apollo_pydantic"
-version = "0.0.1"
+version = "0.0.2"
 authors = [
   { name="ryanrain2016", email="holidaylover2010@gmail.com" },
 ]
@@ -19,8 +19,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dynamic = ["dependencies"]
-
+dependencies = [
+  "httpx>=0.27.0",
+  "pydantic-settings>=2.0.0,<3.0.0"
+]
 
 [project.urls]
 Homepage = "https://github.com/ryanrain2016/apollo_pydantic"

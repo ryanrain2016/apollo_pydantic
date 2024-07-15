@@ -7,7 +7,7 @@ pydantic_settings详情见[pydantic_settings](https://docs.pydantic.dev/latest/c
 ## 如何安装
 `apollo_pydantic`已上传至pypi，可以通过如下命令安装
 ```bash
-pip install apollo_pydantic
+pip install -U apollo-pydantic
 ```
 
 ## 注意事项
