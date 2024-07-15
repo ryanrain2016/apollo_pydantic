@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "apollo_pydantic"
+version = "0.0.1"
+authors = [
+  { name="ryanrain2016", email="holidaylover2010@gmail.com" },
+]
+description = "apollo client wrapped by pydantic"
+readme = "README.md"
+
+requires-python = ">=3.10"
+keywords=["pydantic", "apollo", "config", "distributed", "configuration", "settings", "microservice"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dynamic = ["dependencies"]
+
+
+[project.urls]
+Homepage = "https://github.com/ryanrain2016/apollo_pydantic"
+Issues = "https://github.com/ryanrain2016/apollo_pydantic/issues"
