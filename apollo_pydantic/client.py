@@ -35,13 +35,24 @@ class ApolloClient:
     async def _http_get(self, path: str, timeout: float=5):
         url = urljoin(self.config_server, path)
         debug_logger.debug(f'GET {url}')
-        if self._client:
-            res = await self._client.get(url, follow_redirects=True, headers=self.headers(path), timeout=timeout)
-        else:
-            async with AsyncClient() as client:
-                res = await client.get(url, follow_redirects=True, headers=self.headers(path), timeout=timeout)
+        try:
+            if self._client:
+                res = await self._client.get(url, follow_redirects=True, headers=self.headers(path), timeout=timeout)
+            else:
+                async with AsyncClient() as client:
+                    res = await client.get(url, follow_redirects=True, headers=self.headers(path), timeout=timeout)
+        except Exception as e:
+            debug_logger.error(f'GET {url} failed: {e}')
+            raise ValueError(f'GET {url} failed: {e}')
+        debug_logger.debug(f'GET {url} response: {res.status_code}')
         if res.status_code == 304:
             return None
+        if res.status_code == 404:
+            raise ValueError(f'Config not found: {path}, maybe the namespace is not exist or not published')
+        if res.status_code == 401:
+            raise ValueError(f'Unauthorized: {path}, secret_key is invalid or not set')
+        if res.status_code == 500:
+            raise ValueError(f'Internal Server Error: {path}, maybe the config_server is not available')
         return res.json()
 
     def _parse_path(self, path, params):

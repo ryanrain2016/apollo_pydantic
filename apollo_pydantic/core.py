@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import re
+import sys
 from collections import defaultdict
 from functools import lru_cache
 from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
@@ -15,6 +16,19 @@ from apollo_pydantic.logger import debug_logger, logger
 
 from .client import ApolloClient
 
+
+if sys.version_info < (3, 11):
+    class ExceptionGroup(Exception):
+        def __init__(self, message, exceptions):
+            self.message = message
+            self.exceptions = exceptions
+            super().__init__(message)
+        
+        def __str__(self):
+            return f"{self.message} ({self.exceptions!r})"
+        
+        def __repr__(self):
+            return f"ExceptionGroup({self.message!r}, {self.exceptions!r})"
 
 class ApolloSettingsConfigDict(SettingsConfigDict):
     config_server: HttpUrl
@@ -186,15 +200,23 @@ class ApolloSettingsMetadata:
         if self._started:
             return
         self._started = True
-        self._running_fut = asyncio.Future()
+        
         # ensure all instances are initialized
         init_tasks, _ = await asyncio.wait({asyncio.create_task(self._notification_one(key, client, onerror_resume=False))
                             for key, client in self._clients.items()})
+        exceptions = []
         for task in init_tasks:
             if e := task.exception():
                 # instances init failed, raise it
-                raise e
-        self._started_fut.set_result(None)
+                exceptions.append(e)
+        
+        if exceptions:
+            self._started_fut.set_exception(ExceptionGroup("ApolloSettings init failed", exceptions))
+            self._started = False
+            return
+        else:
+            self._started_fut.set_result(None)
+        # all instances are initialized, start notification
         tasks = {asyncio.create_task(self._notification_one(key, client, self._onerror_resume))
                             for key, client in self._clients.items()}
         while self._started:
@@ -205,18 +227,22 @@ class ApolloSettingsMetadata:
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
-        self._running_fut.set_result(None)
 
     async def start(self):
         self._started_fut = asyncio.Future()
-        asyncio.create_task(self._start())
+        self._running_fut = asyncio.create_task(self._start())
         await self._started_fut
 
     async def stop(self):
         if not self._started:
             return
         self._started = False
-        await self._running_fut
+        try:
+            await self._running_fut
+        except Exception as e:
+            logger.exception("ApolloSettings stop failed", e)
+        finally:
+            self._running_fut = None
 
 class ApolloSettings(BaseSettings):
     __metadata__:ApolloSettingsMetadata = ApolloSettingsMetadata()
